@@ -1,36 +1,61 @@
-
+import pandas as pd
 from copy import deepcopy
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.model_selection import TimeSeriesSplit
+
 
 def time_series_cv(model, X, y, scaler_y, folds, train_size_ratio):
+    """
+    Function performing cross-validation on time series data based on sklearn,
+    with modified strategy: train set is adjusted to be of the same size in each fold.
 
-    # stworzenie kontenerów na błędy w foldach
+    :param model: sklearn model
+    :param X: pd.DataFrame, set of features
+    :param y: array-like, target variable
+    :param scaler_y: scaling transformer used to transform X
+    :param folds: int, number of folds
+    :param train_size_ratio: float, must be contained in (0, 1)
+    :return: pd.DataFrame, metrics per each split
+    """
+    # Create containers for metrics.
     mae_scores = []
     rmse_scores = []
     r2_scores = []
 
-    for train_index, test_index in tscv.split(X):
-        if len(train_index) >= train_size_ratio * len(test_index):
-            train_index_trunc = train_index[-train_size_ratio * len(test_index):]
+    # Start transformer.
+    tscv = TimeSeriesSplit(folds)
 
-            # podział zbioru na trenongowy i testowy
+    # For each fold of TimeSeriesSplit truncate training set.
+    for train_index, test_index in tscv.split(X):
+
+        # Train size based on given ratio parameter.
+        train_set_size = train_size_ratio * len(test_index)
+
+        # Assure that training set is big enough.
+        if len(train_index) >= train_set_size:
+
+            # Truncate training set index.
+            train_index_trunc = train_index[-train_set_size:]
+
+            # Split into train and test sets.
             X_train, X_test = X[train_index_trunc, :], X[test_index, :]
             y_train, y_test = y[train_index_trunc], y[test_index]
 
-            # uczenie kopii modelu i predykcja
+            # Train model and predict values.
             model_tmp = deepcopy(model)
             model_tmp.fit(X_train, y_train)
             y_pred = model_tmp.predict(X_test)
 
-            # reskalowanie do oryginalnych wartości y
+            # Inverse scaling to original values.
             y_pred_r = scaler_y.inverse_transform(y_pred.reshape(-1, 1)).ravel()
             y_test_r = scaler_y.inverse_transform(y_test.reshape(-1, 1)).ravel()
 
-            # wyliczenie miar błędów
+            # Get result's metrics.
             mae_scores.append(mean_absolute_error(y_test_r, y_pred_r))
             rmse_scores.append(mean_squared_error(y_test_r, y_pred_r )* *0.5)
             r2_scores.append(r2_score(y_test_r, y_pred_r))
 
+    # TODO: redo the output to return also the model and data
     return pd.DataFrame(
         {
             'MAE': mae_scores,
