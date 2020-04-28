@@ -4,19 +4,33 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import TimeSeriesSplit
 
 
-def time_series_cv(model, X, y, scaler_y, folds, train_size_ratio):
+def time_series_cv(model: object, X: pd.DataFrame, y: np.ndarray,
+                   scaler_y: object, folds: int, train_size_ratio: float):
     """
     Function performing cross-validation on time series data based on sklearn,
     with modified strategy: train set is adjusted to be of the same size in each fold.
 
-    :param model: sklearn model
-    :param X: pd.DataFrame, set of features
-    :param y: array-like, target variable
-    :param scaler_y: scaling transformer used to transform X
-    :param folds: int, number of folds
-    :param train_size_ratio: float, must be contained in (0, 1)
-    :return: pd.DataFrame, metrics per each split
+    Parameters
+    ----------
+    model: object
+        Sklearn model with predict method.
+    X : pandas.DataFrame
+        Set of features.
+    y : array_like
+        Target variable.
+    scaler_y: object
+        Scaling transformer used to transform y.
+    folds: int
+        Number of folds.
+    train_size_ratio: float
+        Should be between 0.0 and 1.0.
+
+    Returns
+    -------
+    metrics: pandas.DataFrame
+        Metrics per each split.
     """
+
     # Create containers for metrics.
     mae_scores = []
     rmse_scores = []
@@ -66,6 +80,20 @@ def time_series_cv(model, X, y, scaler_y, folds, train_size_ratio):
 
 
 def get_features_for_prediction(y_pred_series, important_lags, current_timestamp, scaler_x):
+    """
+    Helper function for auto-regression.
+
+    Parameters
+    ----------
+    y_pred_series
+    important_lags
+    current_timestamp
+    scaler_x
+
+    Returns
+    -------
+
+    """
     lagged_df = pd.DataFrame({'ZAP': y_pred_series})
 
     # odtworzenie lagów
@@ -90,26 +118,52 @@ def get_features_for_prediction(y_pred_series, important_lags, current_timestamp
 
 
 def predict_autoregressive(model, consumption, important_lags, prediction_horizon, last_timestamp, scaler_x, scaler_y):
+    """
+
+    Parameters
+    ----------
+    model: object
+        Sklearn model with predict method.
+    consumption: pandas.DataFrame
+        Features table.
+    important_lags:
+    prediction_horizon:
+    last_timestamp:
+    scaler_x: object
+        Scaling transformer object used to scale X having inverse_transform method.
+    scaler_y: object
+        Scaling transformer object used to scale y having inverse_transform method.
+
+    Returns
+    -------
+    y_pred_df: pandas.DataFrame
+
+
+    """
+    # TODO: Run this function and check if rly works.
+    # TODO: divide it into more steps
     # przytnij wektor consumption do takiej długości, żemy można było z niego policzyć lagi
     # długość tego wektora wyznaczamy na podstawie największego istotnego laga dla badanego modelu
     y_pred_df = consumption[:last_timestamp].iloc[-important_lags.max() - 1:, 0]
 
-    # tworzymy obecny timestamp, dla którego będziemy generować predykcję
+    # Get current timestamp to generate prediction for it.
     current_timestamp = last_timestamp + pd.Timedelta('1H')
 
+    # Create auto-regressive prediction of length prediction_horizon
     # generujemy autoregresywną predykcję o długośći prediction_horizon
     for i in range(prediction_horizon):
         # pobieramy jeden wiersz zmiennych na podstawie których będziemy robić predykcję dla current_timestamp
         x = get_features_for_prediction(y_pred_df, important_lags, current_timestamp, scaler_x)
 
-        # robimy predykcję i reskalujemy wartości za pomocą scaler_y
+        # Predict y and inverse scale result.
         y_pred_one = model.predict(x).ravel()
         y_pred_one = scaler_y.inverse_transform(y_pred_one).ravel()
         print(current_timestamp, y_pred_one[0])
 
         # dodajemy wypredykowane wartości razem z timestampem do seri predykcji autoregresywnej
+        # Update result DataFrame.
         y_pred_df = y_pred_df.append(pd.Series(y_pred_one, index=[current_timestamp]), ignore_index=False)
 
-        # inkrementujemy current_timestamp, dla którego będzie budowana następna predykcja
+        # Prepare timestamp for next prediction.
         current_timestamp += pd.Timedelta('1H')
     return y_pred_df
