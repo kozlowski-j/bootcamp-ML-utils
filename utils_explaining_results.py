@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib.pyplot as plt
+
 from typing import Callable
 
 
@@ -225,3 +227,75 @@ def permutation_importance(model: object,
     importances = (scores - error) / error
 
     return importances.ravel()
+
+
+def plot_classification(X: np.ndarray, 
+                        y: np.ndarray, 
+                        clf: object, 
+                        title: str=None) -> None:
+    """
+    Function outputs plot for binary classificaiton results.
+    
+    Parameters
+    ----------
+        model: (object) 
+            Fitted model with standard predict(X) public method.
+        X: (numpy.ndarray) 
+            Array of input for the given model.
+        y: (numpy.ndarray) 
+            Array of outputs matched to X matrix.
+        clf: (object) 
+            Object of the fitted classifier.
+        title: (string) 
+            Title of the plot.
+    """
+    
+    plt.figure(figsize=(9, 6))
+
+    X1, X2 = np.meshgrid(np.arange(start = X[:, 0].min() - 0.2, stop = X[:, 0].max() + 0.2, step = 0.01),
+                        np.arange(start = X[:, 1].min() - 0.2, stop = X[:, 1].max() + 0.2, step = 0.01))
+    plt.contourf(X1, X2, clf.predict(np.array([X1.ravel(), X2.ravel()]).T).reshape(X1.shape),
+                alpha = 0.3, cmap = ListedColormap(('blue', 'red')))
+    plt.plot(X[:, 0][y==0], X[:, 1][y==0], "bo")
+    plt.plot(X[:, 0][y==1], X[:, 1][y==1], "ro")
+    
+    plt.xlim(X1.min(), X1.max())
+    plt.ylim(X2.min(), X2.max())
+    plt.xlabel("X_1", fontsize=20)
+    plt.ylabel("X_2", fontsize=20)
+    plt.title(title, fontsize=22)
+    plt.show()
+    
+    
+def plot_distributions_and_thresholds(y_pred_proba: np.ndarray,
+                                      y_true: np.ndarray,
+                                      first_threshold: np.float32,
+                                      second_threshold: np.float32,
+                                      title: str=None) -> None:
+    
+    """
+    Function outputs plot with binary class distributions and two thresholds comparison.
+    
+    Parameters
+    ----------
+    y_pred_proba : array_like
+        Target prediction probabilities of class 1.
+    y_true : array_like
+        Ground truth (correct) labels.
+    first_threshold : 
+        First threshold for comparison.
+    second_threshold :
+        Second threshold for comparison.
+    title : (str) 
+        Title of the plot.
+    """
+    
+    plt.hist(y_pred_proba[y_true == 0], label='0', bins=50, alpha=0.5)
+    plt.hist(y_pred_proba[y_true == 1], label='1', bins=50, alpha=0.5)
+    plt.vlines(threshold_profit, 0, 100, color='green',
+               linestyle='--',  label='first threshold')
+    plt.vlines(threshold_f1, 0, 100, color='red',
+               linestyle='--', label='second threshold')
+    plt.yscale('log')
+    plt.legend()
+    plt.title(title)
