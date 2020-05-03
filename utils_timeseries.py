@@ -66,7 +66,7 @@ def time_series_cv(model: object, X: pd.DataFrame, y: np.ndarray,
 
             # Get result's metrics.
             mae_scores.append(mean_absolute_error(y_test_r, y_pred_r))
-            rmse_scores.append(mean_squared_error(y_test_r, y_pred_r )* *0.5)
+            rmse_scores.append(mean_squared_error(y_test_r, y_pred_r)**0.5)
             r2_scores.append(r2_score(y_test_r, y_pred_r))
 
     # TODO: redo the output to return also the model and data
@@ -104,6 +104,7 @@ def get_features_for_prediction(y_pred_series, important_lags, current_timestamp
     lagged_df = lagged_df.iloc[-1, 1:]
 
     # zmiene czasowe
+    # TODO: get this functions
     lagged_df['is_weekend'] = is_weekend(current_timestamp)
     lagged_df['HoD_sin'] = get_hour_sin(current_timestamp)
     lagged_df['HoD_cos'] = get_hour_cos(current_timestamp)
@@ -149,7 +150,7 @@ def predict_autoregressive(model, consumption, important_lags, prediction_horizo
     # Get current timestamp to generate prediction for it.
     current_timestamp = last_timestamp + pd.Timedelta('1H')
 
-    # Create auto-regressive prediction of length prediction_horizon
+    # Create auto-regressive prediction of length prediction_horizon.
     # generujemy autoregresywną predykcję o długośći prediction_horizon
     for i in range(prediction_horizon):
         # pobieramy jeden wiersz zmiennych na podstawie których będziemy robić predykcję dla current_timestamp

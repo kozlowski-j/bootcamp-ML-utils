@@ -43,20 +43,24 @@ class MyStandardScaler(BaseEstimator, TransformerMixin):
 
 
 class DropColumns(BaseEstimator, TransformerMixin):
-    """
-    Transformer to drop specified columns.
-    """
 
     def __init__(self, columns):
-        # przechowaj listę stringów oznaczających kolumny dataframe'a
+        """
+        Transformer to drop specified columns.
+
+        Parameters
+        ----------
+        columns: str or list
+            Names of columns to drop.
+        """
+        # Keep columns' names.
         self.columns_to_drop = columns
 
     def fit(self, X, y=None):
-        # nieużywana metoda
         return self
 
     def transform(self, X):
-        # zastosuj metodę drop na obiekcie dataframe - uwaga na axis!
+        # Drop selected columns.
         X_copied = X.copy()
         X_copied.drop(labels=self.columns_to_drop, axis=1, inplace=True)
         return X_copied
@@ -106,10 +110,10 @@ class MissingIndicatorForSparseFeatures(BaseEstimator, TransformerMixin):
 
 
 class ReduceRareValues(BaseEstimator, TransformerMixin):
+
     def __init__(self, threshold, replace_value='rare_value'):
         self.threshold = threshold
         self.replace_value = replace_value
-
         self.classes_to_keep = None
 
     def fit(self, X, y=None):
