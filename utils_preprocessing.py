@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# coding: utf-8
+
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.impute import SimpleImputer
 import pandas as pd
@@ -46,7 +49,7 @@ class MyStandardScaler(BaseEstimator, TransformerMixin):
             y (pd.DataFrame): ignored
           
         Returns: 
-            object MyStandardScaler: Fitted data prepared to be transformed. 
+            object of the class MyStandardScaler: Fitted data prepared to be transformed. 
         """
         
         # calculate means and stds for every column
@@ -86,6 +89,7 @@ class MyStandardScaler(BaseEstimator, TransformerMixin):
             X_copied = X_copied / self.stds
 
         return X_copied
+
 
 
 class DropColumns(BaseEstimator, TransformerMixin):
@@ -131,6 +135,7 @@ class DropColumns(BaseEstimator, TransformerMixin):
 
 
 
+
 class ColumnsSelectorByType(BaseEstimator, TransformerMixin):
     """
     This is a class for transforming to select columns of specified types.
@@ -169,6 +174,7 @@ class ColumnsSelectorByType(BaseEstimator, TransformerMixin):
         return X.select_dtypes(include=self.column_type)
 
 
+
 class MissingIndicatorForSparseFeatures(BaseEstimator, TransformerMixin):
     """
     This is a class for implementing a transormer that replaces variables where the percentage 
@@ -205,7 +211,7 @@ class MissingIndicatorForSparseFeatures(BaseEstimator, TransformerMixin):
         X (pd.DataFrame): The data used to select the appropriate colum's indexes.  
         
         Returns: 
-            object MissingIndicatorForSparseFeatures: Fitted data prepared to be transformed. 
+            object of the class MissingIndicatorForSparseFeatures: Fitted data prepared to be transformed. 
         """
         # select column indexes whose percentage of missing values is greater than the threshold
         column_indicators = X.isnull().mean() > self.threshold
@@ -234,6 +240,7 @@ class MissingIndicatorForSparseFeatures(BaseEstimator, TransformerMixin):
         return X_copied
 
 
+
 class ReduceRareValues(BaseEstimator, TransformerMixin):
     """
     This is a class for implementing the ReduceRareValues transformer, 
@@ -243,7 +250,7 @@ class ReduceRareValues(BaseEstimator, TransformerMixin):
     Parameters
     ----------
     threshold (float):  value above that, variables where the percentage of observations containing no data.
-    raplace_value (str): 'rare_value'
+    raplace_value (str): default value 'rare_value'
     """
 
     def __init__(self, threshold, replace_value='rare_value'):
@@ -262,6 +269,19 @@ class ReduceRareValues(BaseEstimator, TransformerMixin):
         self.classes_to_keep = None
 
     def fit(self, X, y=None):
+        """
+        The function checks which classes meet the frequency condition, 
+        gets the list of classes we want to keep 
+        and adds a nested list of pairs column_name, columns_classes_which_we_want_to_preserve to the list
+        and converts it into a dictionary.
+        
+        Parameters
+        ----------
+        X (pd.DataFrame): The data used to check frequent classes and build a list of classes to keep.  
+        
+        Returns: 
+            object of the class ReduceRareValues: Fitted data prepared to be transformed. 
+        """
 
         classes_to_keep_list = list()
 
@@ -280,6 +300,19 @@ class ReduceRareValues(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X):
+        """
+        The function does a shallow copy and for each column, i.e. each item in the dictionary 
+        it collects from the original column, unique values that are not None's. Then it selects 
+        values that are in unique values and which are not in most_freq_values. If there are any 
+        values to replace, it replaces them with replace_value initiated in the constructor.
+
+        Parameters
+        ----------
+        X (pd.DataFrame): The data used to collect unique values and prepare values to be replaced.  
+        
+        Returns: 
+             pd.DataFrame: Transformed data with replaced values. 
+        """
         X_copied = X.copy()
 
         # for each column, i.e. each item in the dictionary:
@@ -299,17 +332,69 @@ class ReduceRareValues(BaseEstimator, TransformerMixin):
 
 
 
+
 class SimpleImputerWrapper(BaseEstimator, TransformerMixin):
+    """
+    This is a helper class for SimpleImputer,it has been created to support dataframes.
+    
+    Parameters
+    ----------
+    imputer (object):  SimpleImputer object giving a strategy for imputing missing values.
+    columns (list of strings): by default ignored
+    """
 
     def __init__(self, strategy, fill_value=None):
+        """
+        SimpleImputerWrapper transformer. Sets imputer for missing values.
+
+        Parameters
+        ----------
+        imputer (object):  SimpleImputer object giving a strategy for imputing missing values.
+                           Missing values can be imputed with a provided constant value, or 
+                           using the statistics (mean, median or most frequent) of each column 
+                           in which the missing values are located. 
+                           Parameters
+                           ----------
+                           strategy (string): default=’mean’. Only with numeric data: 'mean','median'.
+                                              With strings or numeric data: 'most_frequent','constant'
+                           fill_value (string or numerical value): default=None. When strategy == “constant”, 
+                                                                   fill_value is used to replace all occurrences 
+                                                                   of missing_values. If left to the default, 
+                                                                   fill_value will be 0 when imputing numerical 
+                                                                   data and “missing_value” for strings or object data types.
+                           
+        columns (list of strings): by default set to None
+        """
         self.imputer = SimpleImputer(strategy=strategy, fill_value=fill_value)
         self.columns = None
 
     def fit(self, X, y=None):
+        """
+        Fits the imputer to X. Sets self.columns to columns from the dataset X.
+        
+        Parameters
+        ----------
+        X (pd.DataFrame): The dataset to fit.
+        y (pd.DataFrame): default to None/ingnored
+        
+        Returns: 
+            object of the class SimpleImputerWrapper: Fitted data prepared to be transformed. 
+        """
+
         self.imputer.fit(X)
         self.columns = X.columns
         return self
 
     def transform(self, X):
+        """
+        Imputes all missing values in X using the fitted imputer and set columns.
+
+        Parameters
+        ----------
+        X (pd.DataFrame): The data fitted with SimpleImputer.  
+        
+        Returns: 
+             pd.DataFrame: Transformed data with imputed missing values. 
+        """
         return pd.DataFrame(self.imputer.transform(X), columns=self.columns)
 
