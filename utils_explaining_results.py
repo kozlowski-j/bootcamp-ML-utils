@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
 
 from typing import Callable
 
@@ -44,53 +45,53 @@ def plot_pdp(model: object,
         (pandas.DataFrame) dataframe with one column of PDP values.
     """
 
-    # jeśli zbiór za duży, pobierz 100 losowych przykładów treningowych
+    # if the collection is too big, draw 100 random training examples
     if X.shape[0] > 1000:
         sample_indexes = np.random.randint(X.shape[0], size=1000)
         X = X[sample_indexes, :]
 
-    # dla zmiennej feature_number stwórz siatkę wartości o wybranej rozdzielczości
+    # for the feature_number variable, create a grid of values of the selected resolution
     sampled_values = __sample_space(x=X[:, feature_number],
                                     feature_type=feature_type,
                                     sample_resolution=100)
 
-    # stwórz zmienną sample_resolution opisującą wielkość stworzonej siatki.
+    # create a sample_resolution variable describing the size of the created grid.
     sample_resolution = sampled_values.shape[0]
 
-    # stwórz pusty kontener na poszerzony zbiór do predykcji
+    # create an empty container for an extended collection for prediction
     stacked_instances = np.empty((0, X.shape[1]), float)
 
-    # usuń zmienną, dla której liczone jest PDP i zostaw pomniejszony zbiór
+    # delete the variable for which PDP is calculated and leave a reduced set
     other_features = np.delete(X,
                                feature_number,
                                axis=1)
 
-    # dla każdej próbki w zbiorze wykonaj:
+    # for each sample in the collection, perform:
     for i, row in enumerate(other_features):
-        # skopiuj przykład sample_resolution razy
+        # copy sample_resolution example times
         copied_instances = np.repeat(row.reshape(1, -1),
                                      sample_resolution,
                                      axis=0)
 
-        # wstaw do powtórzonych próbek unikalne wartości zmiennej z wcześniej zbudowanej siatki
+        # insert into repeated samples the unique values of the variable from the previously constructed grid
         concatenated_instances = np.insert(copied_instances,
                                            feature_number,
                                            sampled_values.ravel(),
                                            axis=1)
 
-        # dodaj rozszerzony zbiór do kontenera
+        # add the extended collection to the container
         stacked_instances = np.append(stacked_instances,
                                       concatenated_instances,
                                       axis=0)
 
-    # wykonaj predykcje dla każdej próbki w kontenerze
+    # make predictions for each sample in the container
     y_pred = model.predict(stacked_instances).ravel()
 
-    # stwórz dataframe'a z kolumnami wybranej zmiennej oraz odpowiadającymi predykcjami
+    # create a dataframe with columns of the selected variable and corresponding predictions
     feature_results = pd.DataFrame({feature_name: stacked_instances[:, feature_number],
                                     'output': y_pred})
 
-    # pogrupuj wartości względem wartości wybranej i wylicz z nich średnią
+    # group the values in relation to the selected value and calculate the average of them
     mean_outputs = feature_results.groupby([feature_name]).mean()
 
     return mean_outputs
@@ -114,69 +115,69 @@ def plot_ice(model: object,
         (pandas.DataFrame) dataframe with ICE values.
     """
 
-    # jeśli zbiór za duży, pobierz 100 losowych przykładów treningowych
+    # if the collection is too big, draw 100 random training examples
     if X.shape[0] > 1000:
         sample_indexes = np.random.randint(X.shape[0], size=1000)
         X = X[sample_indexes, :]
 
-    # dla zmiennej feature_number stwórz siatkę wartości o wybranej rozdzielczości
+    # for the feature_number variable, create a grid of values of the selected resolution
     sampled_values = __sample_space(x=X[:, feature_number],
                                     feature_type=feature_type,
                                     sample_resolution=100)
 
-    # stwórz zmienną sample_resolution opisującą wielkość stworzonej siatki.
+    # create a sample_resolution variable describing the size of the created grid
     sample_resolution = sampled_values.shape[0]
 
-    # stwórz pusty kontener na poszerzony zbiór do predykcji
+    # create an empty container for an extended collection for prediction
     stacked_instances = np.empty((0, X.shape[1]), float)
 
-    # usuń zmienną, dla której liczone jest PDP i zostaw pomniejszony zbiór
+    # delete the variable for which PDP is calculated and leave a reduced set
     other_features = np.delete(X,
                                feature_number,
                                axis=1)
 
-    # stwórz pustą lista, która będzie przechowywać informacje, z której próbki pochodzi który wiersz w finalnym zbiorze
+    # create a blank list that will store the information from which sample which line in the final collection comes from
     row_indicator = []
 
-    # dla każdej próbki w zbiorze wykonaj:
+    # for each sample in the set, perform:
     for i, row in enumerate(other_features):
-        # skopiuj przykład sample_resolution razy
+        # copy sample_resolution example times
         copied_instances = np.repeat(row.reshape(1, -1),
                                      sample_resolution,
                                      axis=0)
 
-        # wstaw do powtórzonych próbek unikalne wartości zmiennej z wcześniej zbudowanej siatki
+        # insert into repeated samples the unique values of the variable from the previously constructed grid
         concatenated_instances = np.insert(copied_instances,
                                            feature_number,
                                            sampled_values.ravel(),
                                            axis=1)
 
-        # dodaj rozszerzony zbiór do kontenera
+        # add the extended collection to the container
         stacked_instances = np.append(stacked_instances,
                                       concatenated_instances,
                                       axis=0)
 
-        # dołącz do listy wektor odpowiadający indeksowi przewarzanej próbki w pętli
+        # attach to the list the vector corresponding to the index of the processed sample in the loop
         row_indicator += ((np.ones(sample_resolution) * i).ravel().tolist())
 
-    # wykonaj predykcje dla każdej próbki w kontenerze
+    # make predictions for each sample in the container
     y_pred = model.predict(stacked_instances).ravel()
 
-    # stwórz dataframe'a z kolumnami wybranej zmiennej, identyfikatorami oryginalnych próbek oraz odpowiadającymi predykcjami
+    # create a dataframe with columns of the selected variable, identifiers of original samples and corresponding predictions
     feature_results = pd.DataFrame({feature_name: stacked_instances[:, feature_number],
                                     'output': y_pred,
                                     'sample_id': row_indicator})
 
-    # stwórz dataframe'a z kolumną opisującą siatkę wartości badanej zmiennej
+    # create a dataframe with a column describing the value grid of the tested variable
     samples_groups_df = pd.DataFrame(
         {feature_name: feature_results[feature_results['sample_id'] == 0][feature_name].values})
 
-    # ustaw stworzoną kolumnę jako indeks
+    # set the created column as an index
     samples_groups_df.set_index(feature_name, drop=True, inplace=True)
 
-    # dla każdej z oryginalnych próbek:
+    # for each of the original samples:
     for slice_num in range(X.shape[0]):
-        # dodaj kolumnę opisująca uzyskane wyniki predykcji, znajdując odpowiednie sample_id
+        # add a column describing the prediction results obtained by finding the appropriate sample_id
         samples_groups_df[str(slice_num)] = feature_results[feature_results['sample_id'] == slice_num]['output'].values
 
     return samples_groups_df
@@ -201,28 +202,28 @@ def permutation_importance(model: object,
     Returns:
         (numpy.ndarray) vector of increased errors of samples_numb length (0 - 0%, 1=100%).
     """
-    # wylicz predykcje dla zadanego zbioru
+    # calculate predictions for the given collection
     y_pred = model.predict(X).ravel()
 
-    # dla wyliczonych predykcji oblicz błąd zgodnie z podaną metodą
+    # for the calculated predictions, calculate the error according to given method
     error = error_func(y.ravel(), y_pred.ravel())
 
-    # stwórz pustą listę na błędy predykcji
+    # make an empty list for predictive errors
     scores = []
 
-    # powtórz samples_numb-krotnie:
+    # repeat samples_numb-times:
     for sample in range(samples_numb):
-        # skopiuj zbiór danych, zapobiegając jego nadpisaniu
+        # copy the dataset, preventing it from being overwritten
         shuff_test = X.copy()
 
-        # permutuj wartości w badanej zmiennej
+        # permute the values in the test variable
         shuff_test[:, feature_number] = np.random.permutation(shuff_test[:, feature_number])
 
-        # wyznacz błąd predykcji na tak upośledzonym zbiorze i doadj go do listy
+        # determine the prediction error on such a handicapped collection and add it to the list
         score = error_func(y.ravel(), model.predict(shuff_test).ravel())
         scores.append(score)
 
-    # wyznacz względne błędy porównując je do oryginalnej wartości
+    # determine relative errors by comparing them to the original value
     scores = np.asarray(scores)
     importances = (scores - error) / error
 
