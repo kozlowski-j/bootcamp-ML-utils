@@ -2,6 +2,7 @@ import pandas as pd
 from copy import deepcopy
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import TimeSeriesSplit
+from statsmodels.tsa.stattools import adfuller
 
 
 def time_series_cv(model: object, X: pd.DataFrame, y: np.ndarray,
@@ -168,3 +169,44 @@ def predict_autoregressive(model, consumption, important_lags, prediction_horizo
         # Prepare timestamp for next prediction.
         current_timestamp += pd.Timedelta('1H')
     return y_pred_df
+
+
+def stationary(df_test):
+    if df_test[1] < 0.05:
+        print('Time series is stationary.')
+    else:
+        print('Time series is not stationary')
+
+
+def check_time_series_stationary(y, rolling_len=12):
+    """
+    Perform Dickey-Fuller test for stationarity. Plot TS and autocorrelation.
+
+    Parameters
+    ----------
+    y: array-like
+        Time Series object.
+    rolling_len: int
+        Rolling mean window width.
+
+    Returns
+    -------
+
+    """
+    y = pd.Series(y)
+    rolling_mean = y.rolling(rolling_len).mean()
+    rolling_var = y.rolling(rolling_len).var()
+
+    f, ax = plt.subplots(1, 2, figsize=(16, 8))
+    ax[0].plot(y)
+    ax[0].plot(rolling_mean, label='Rolling mean')
+    ax[0].plot(rolling_var, label='Rolling var')
+    ax[0].legend()
+
+    pd.plotting.autocorrelation_plot(y, ax=ax[1])
+
+    adfuller_stats = adfuller(y)
+    print(f'Adfuller statistic: {np.round(adfuller_stats[0], 4)}')
+    print(f'Adfuller p-value: {np.round(adfuller_stats[1], 4)}')
+    stationary(adfuller_stats)
+
